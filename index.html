@@ -262,13 +262,10 @@ footer .mono{font-size:60px;color:var(--gold-soft);font-style:italic;line-height
 footer p{margin-top:16px;font-style:italic}
 footer #footTag{color:var(--gold-soft);font-size:22px}
 footer .eyebrow{color:#A9B19A;margin-top:12px}
-.pass{margin:56px auto 0;max-width:340px;padding:30px 26px 26px;border:1px solid var(--gold-line);border-radius:10px;background:var(--black-soft);position:relative}
-.pass::before{content:"";position:absolute;inset:8px;border:1px solid var(--gold-line);border-radius:6px;pointer-events:none}
-.pass .eyebrow{color:var(--gold-soft);margin:0 0 18px}
-.pass .qr{width:200px;aspect-ratio:1;margin:0 auto;background:#FBF7EC;padding:12px;border-radius:6px}
-.pass .qr svg{display:block;width:100%;height:100%}
-.pass b{display:block;font-weight:400;font-style:italic;font-size:22px;color:#F1E6C8;margin-top:18px;line-height:1.3}
-.pass small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#A9A493;margin-top:10px}
+#notes .card.pass{text-align:center}
+.qr{width:min(210px,100%);aspect-ratio:1;margin:22px auto 0;background:#FBF7EC;padding:12px;border-radius:6px;box-shadow:0 0 0 1px var(--gold-line),0 0 0 7px var(--black-soft),0 0 0 8px var(--gold-line)}
+.qr svg{display:block;width:100%;height:100%}
+.qrmeta{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#A9A493;margin-top:18px}
 #music{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--paper);color:var(--ink);box-shadow:0 8px 20px rgba(0,0,0,.2);padding:12px 20px;font-size:10px}
 #music:hover{background:#fff}
 
@@ -390,12 +387,6 @@ footer .eyebrow{color:#A9B19A;margin-top:12px}
   <p id="footNames"></p>
   <p id="footTag"></p>
   <p class="eyebrow" id="footVenue"></p>
-  <div class="pass" id="pass" hidden>
-    <p class="eyebrow">Admission pass</p>
-    <div class="qr" id="qr" role="img"></div>
-    <b id="passName"></b>
-    <small id="passMeta"></small>
-  </div>
 </footer>
 
 <button class="btn" id="music" hidden>♪ Play music</button>
@@ -479,7 +470,9 @@ $("dressCards").innerHTML = W.dressCode.cards.map(([e, t, p]) => `<div class="ca
 $("verseText").textContent = W.verse.text;
 $("verseRef").textContent = W.verse.ref;
 
-$("noteCards").innerHTML = (GUEST ? `<div class="card admit"><h3>This invitation admits</h3><p>${esc(GUEST)}</p>${ENTRY ? `<span class="entry">${esc(ENTRY)}</span>` : ""}</div>` : "") + W.notes.map(([t, p]) => `<div class="card"><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`).join("");
+$("noteCards").innerHTML = (GUEST ? `<div class="card admit"><h3>This invitation admits</h3><p>${esc(GUEST)}</p>${ENTRY ? `<span class="entry">${esc(ENTRY)}</span>` : ""}</div>` : "") + W.notes.map(([t, p]) => GUEST && /QR/i.test(p)
+  ? `<div class="card pass"><h3>${esc(t)}</h3><p>${esc(p)}</p><div class="qr" id="qr" role="img"></div><small class="qrmeta" id="passMeta"></small></div>`
+  : `<div class="card"><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`).join("");
 if (!W.faq.length) $("faq").hidden = true;
 $("faqList").innerHTML = W.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("");
 
@@ -493,7 +486,7 @@ $("footVenue").textContent = `${W.venue.name}, ${W.venue.area}`;
 $("footTag").textContent = W.tagline;
 
 // Personal admission QR: plain text, so any phone camera can read it without internet.
-if (GUEST && window.qrcode) {
+if (GUEST && window.qrcode && $("qr")) {
   const text = [`${W.partner1.short} & ${W.partner2.short} Wedding`, `Admit: ${GUEST}`, ENTRY && `Entry: ${ENTRY}`,
     `Code: ${guestCode.toUpperCase()}`, `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${t12(W.ceremony)}`,
     `${W.venue.name}, ${W.venue.area}`, `${location.origin}${location.pathname}?g=${guestCode}`].filter(Boolean).join("\n");
@@ -501,9 +494,7 @@ if (GUEST && window.qrcode) {
   const qr = qrcode(0, "M"); qr.addData(text); qr.make();
   $("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
   $("qr").setAttribute("aria-label", `Admission QR code for ${GUEST}`);
-  $("passName").textContent = GUEST;
   $("passMeta").textContent = [ENTRY, `Code ${guestCode.toUpperCase()}`].filter(Boolean).join(" · ");
-  $("pass").hidden = false;
 }
 
 // Music (only if a file is set)
