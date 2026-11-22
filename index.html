@@ -23,7 +23,7 @@ const WEDDING = {
   partner2: { short: "Edson", full: "Mr. Edson N.", role: "Groom", family: "" },
 
   hosts: "The Murenje and Mugobo families",
-  invitation: "With hearts full of love and gratitude, the Murenje and Mugobo families are delighted to invite you to witness and celebrate one of the most beautiful milestones in our lives — the exchange of vows and celebration of the union of",
+  invitation: "With hearts full of love and gratitude, the Murenje and Mugobo families are delighted to invite {guest} to witness and celebrate one of the most beautiful milestones in our lives — the exchange of vows and celebration of the union of",
   tagline: "Two hearts. One love. Forever begins here.",
 
   date: "2026-12-25",          // YYYY-MM-DD
@@ -125,6 +125,15 @@ section{padding-block:110px;padding-left:max(24px,env(safe-area-inset-left,0px))
 #envelope.open .flap{transform:rotateX(180deg)}
 #envelope.open .seal{opacity:0;transform:scale(.6);animation:none}
 #envelope.open .hint{opacity:0}
+#envelope .addressee{position:absolute;top:clamp(48px,13vh,120px);left:50%;translate:-50%;width:min(88vw,560px);text-align:center;color:#FBF6E6;transition:opacity .4s;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+#envelope .addressee small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.42em;text-transform:uppercase;opacity:.85;margin-bottom:10px}
+#envelope .addressee b{display:block;font-weight:400;font-style:italic;font-size:clamp(24px,4.6vw,38px);line-height:1.2;text-wrap:balance}
+#envelope.open .addressee{opacity:0}
+#envelope .addressee i{display:inline-block;margin-top:12px;font-style:normal;font-family:var(--sans);font-size:10px;letter-spacing:.36em;text-transform:uppercase;color:#1B1A18;background:#E3C98A;padding:5px 14px;border-radius:999px}
+.guest-name{font-style:normal;font-weight:600;color:var(--black)}
+#notes .card.admit{border-color:var(--gold-soft);grid-column:1/-1;text-align:center}
+#notes .card.admit .entry{display:inline-block;margin-top:14px;font-family:var(--sans);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--black);background:var(--gold-soft);padding:6px 16px;border-radius:999px}
+#notes .card.admit p{color:#F1E6C8;font-size:22px;font-style:italic}
 #envelope.open{opacity:0;visibility:hidden}
 
 /* ---------- Hero ---------- */
@@ -257,11 +266,13 @@ footer .eyebrow{color:#A9B19A;margin-top:12px}
 }
 </style>
 <script>document.documentElement.classList.add("sealed")</script>
+<script src="guests.js"></script>
 </head>
 <body>
 
 <div id="envelope" aria-label="Sealed invitation">
   <div class="flap"></div>
+  <div class="addressee" id="addressee" hidden><small>Specially prepared for</small><b id="addresseeName"></b><i id="addresseeEntry" hidden></i></div>
   <button class="seal" id="seal" aria-label="Open the invitation"></button>
   <div class="hint">tap the seal to open</div>
 </div>
@@ -364,6 +375,10 @@ footer .eyebrow{color:#A9B19A;margin-top:12px}
 
 <script>
 const W = WEDDING, $ = id => document.getElementById(id);
+const guestCode = (new URLSearchParams(location.search).get("g") || location.hash.slice(1) || "").trim().toLowerCase();
+const guestRec = (window.GUESTS || {})[guestCode];
+const GUEST = typeof guestRec === "string" ? guestRec : (guestRec && guestRec.name) || "";
+const ENTRY = (guestRec && guestRec.entry) || "";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const d = new Date(W.date + "T" + W.ceremony + ":00");
 const t12 = t => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
@@ -377,8 +392,14 @@ const names = `${W.partner1.short} & ${W.partner2.short}`;
 $("seal").textContent = initials.replace(/ /g, "");
 $("heroNames").innerHTML = `${esc(W.partner1.short)}<span>&amp;</span>${esc(W.partner2.short)}`;
 $("heroDate").textContent = `${dots} · ${t12(W.ceremony)}`;
-$("heroHosts").textContent = `${W.hosts} invite you`;
-$("inviteText").textContent = W.invitation;
+$("heroHosts").textContent = GUEST ? `${W.hosts} invite ${GUEST}` : `${W.hosts} invite you`;
+$("inviteText").innerHTML = esc(W.invitation).replace("{guest}", GUEST ? `<span class="guest-name">${esc(GUEST)}</span>` : "you");
+if (GUEST) {
+  $("addressee").hidden = false;
+  $("addresseeName").textContent = GUEST;
+  if (ENTRY) { $("addresseeEntry").hidden = false; $("addresseeEntry").textContent = ENTRY; }
+  $("seal").setAttribute("aria-label", `Open the invitation for ${GUEST}`);
+}
 $("heroVenue").textContent = `${W.venue.name}, ${W.venue.area}`;
 
 const bits = [names, dots, times, `${W.venue.name}, ${W.venue.area}`, W.tagline];
@@ -432,7 +453,7 @@ $("dressCards").innerHTML = W.dressCode.cards.map(([e, t, p]) => `<div class="ca
 $("verseText").textContent = W.verse.text;
 $("verseRef").textContent = W.verse.ref;
 
-$("noteCards").innerHTML = W.notes.map(([t, p]) => `<div class="card"><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`).join("");
+$("noteCards").innerHTML = (GUEST ? `<div class="card admit"><h3>This invitation admits</h3><p>${esc(GUEST)}</p>${ENTRY ? `<span class="entry">${esc(ENTRY)}</span>` : ""}</div>` : "") + W.notes.map(([t, p]) => `<div class="card"><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`).join("");
 if (!W.faq.length) $("faq").hidden = true;
 $("faqList").innerHTML = W.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("");
 
