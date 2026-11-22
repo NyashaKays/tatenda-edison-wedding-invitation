@@ -27,7 +27,7 @@ button:focus-visible,a.wa:focus-visible,input:focus-visible{outline:2px solid va
 <h1>Tatenda &amp; Edson: guest links</h1>
 <p class="sub">207 invitations · 49 VIP · keep this page private, it lists every guest.</p>
 <div class="bar">
-  <label for="site" id="siteRow">Website address (from Vercel)<input id="site" placeholder="https://your-site.vercel.app"></label>
+  <label for="site" id="siteRow">Website address (from Vercel)<input id="site" value="https://tatenda-edison-wedding-invitation.vercel.app" placeholder="https://tatenda-edison-wedding-invitation.vercel.app"></label>
   <label for="q">Find a guest<input id="q" placeholder="Type a name"></label>
   <div class="seg" role="group" aria-label="Show">
     <button type="button" data-f="todo" aria-pressed="true">Not sent</button>
@@ -43,8 +43,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const onSite = /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 if (onSite) $("siteRow").hidden = true;
-try { $("site").value = localStorage.getItem("site") || ""; } catch {}
-function base() { return onSite ? location.origin : ($("site").value.trim() || "https://your-site.vercel.app").replace(/\/+$/, ""); }
+try { $("site").value = localStorage.getItem("site") || "https://tatenda-edison-wedding-invitation.vercel.app"; } catch {}
+function base() { return onSite ? location.origin : ($("site").value.trim() || "https://tatenda-edison-wedding-invitation.vercel.app").replace(/\/+$/, ""); }
 let sent = {}; try { sent = JSON.parse(localStorage.getItem("sent") || "{}"); } catch {}
 function saveSent() { try { localStorage.setItem("sent", JSON.stringify(sent)); } catch {} }
 let filter = "todo";
