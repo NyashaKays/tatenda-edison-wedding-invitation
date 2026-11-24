@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tatenda &amp; Edson's Wedding</title>
-<meta property="og:title" content="Tatenda &amp; Edson's Wedding">
+<title>Tatenda &amp; Nyasha's Wedding</title>
+<meta property="og:title" content="Tatenda &amp; Nyasha's Wedding">
 <meta property="og:description" content="Friday, 25 December 2026 · Zimbali Gardens, Greendale">
 <meta property="og:image" content="https://tatenda-edison-wedding-invitation.vercel.app/photos/couple-3.jpg">
 <meta property="og:url" content="https://tatenda-edison-wedding-invitation.vercel.app/">
@@ -22,7 +22,7 @@
    ===================================================================== */
 const WEDDING = {
   partner1: { short: "Tatenda", full: "Ms. Tatenda D.", role: "Bride", family: "" },
-  partner2: { short: "Edson", full: "Mr. Edson N.", role: "Groom", family: "" },
+  partner2: { short: "Nyasha", full: "Mr. E. Nyasha", role: "Groom", family: "" },
 
   hosts: "The Murenje and Mugobo families",
   invitation: "With hearts full of love and gratitude, the Murenje and Mugobo families are delighted to invite {guest} to witness and celebrate one of the most beautiful milestones in our lives — the exchange of vows and celebration of the union of",
@@ -66,7 +66,7 @@ const WEDDING = {
   ],
 
   faq: [],                     // [question, answer] — empty hides the section
-  rsvpUrl: "",                 // Google Form link or https://wa.me/<number> — empty hides the section
+  // RSVP: replies are saved by api/rsvp.js and show on the guest links page (named invitations only)
   rsvpBy: "",                  // YYYY-MM-DD
   music: "",                   // e.g. "music/song.mp3" — leave "" for no music button
 
@@ -257,6 +257,16 @@ details p{padding:0 0 26px;color:var(--muted)}
 #rsvp h2{font-size:clamp(40px,7vw,68px);margin:14px 0 20px}
 #rsvp p{max-width:520px;margin:0 auto 14px;color:var(--muted)}
 #rsvp .by{margin:26px 0 34px;color:var(--gold)}
+#rsvp .guest-name{font-style:italic;font-weight:500}
+.choices{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:34px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--cream);color:var(--ink)}
+.btn[disabled]{opacity:.55;cursor:wait;transform:none}
+.reply{max-width:520px;margin:30px auto 0;padding:30px 26px;border:1px solid var(--gold-soft);border-radius:10px;background:var(--cream)}
+.reply h3{font-size:30px;font-style:italic;color:var(--black);margin-bottom:10px}
+.reply p{margin:0 auto}
+.linkbtn{margin-top:16px;background:none;border:0;font:12px var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--gold);cursor:pointer;text-decoration:underline;text-underline-offset:4px}
+#rsvpError{color:#9A3B1F!important;margin-top:18px!important}
 footer{background:var(--black);border-top:1px solid var(--gold-line);color:#EDE7D6;text-align:center;padding-block:80px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
 footer .mono{font-size:60px;color:var(--gold-soft);font-style:italic;line-height:1}
 footer p{margin-top:16px;font-style:italic}
@@ -376,9 +386,17 @@ footer .eyebrow{color:#A9B19A;margin-top:12px}
   <section id="rsvp"><div class="wrap reveal">
     <p class="eyebrow">Kindly respond</p>
     <h2>Will you <em class="g">join us?</em></h2>
-    <p>Your reply helps us prepare a seat, a plate, and a moment kept for you.</p>
-    <p class="eyebrow by" id="rsvpBy"></p>
-    <a class="btn" id="rsvpBtn" target="_blank" rel="noopener">Respond via RSVP form</a>
+    <p><span class="guest-name" id="rsvpGuest"></span>, your reply helps us prepare a seat, a plate, and a moment kept for you.</p>
+    <p class="eyebrow by" id="rsvpBy" hidden></p>
+    <div class="choices" id="rsvpChoices">
+      <button type="button" class="btn" data-rsvp="Attending">Joyfully accept</button>
+      <button type="button" class="btn ghost" data-rsvp="Not attending">Regretfully decline</button>
+    </div>
+    <p id="rsvpError" role="alert" hidden>We couldn't send your reply. Please check your connection and try again.</p>
+    <div class="reply" id="rsvpDone" role="status" hidden>
+      <h3 id="rsvpDoneTitle"></h3><p id="rsvpDoneText"></p>
+      <button type="button" class="linkbtn" id="rsvpChange">Change my reply</button>
+    </div>
   </div></section>
 </main>
 
@@ -476,9 +494,35 @@ $("noteCards").innerHTML = (GUEST ? `<div class="card admit"><h3>This invitation
 if (!W.faq.length) $("faq").hidden = true;
 $("faqList").innerHTML = W.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("");
 
-if (!W.rsvpUrl) $("rsvp").hidden = true;
-if (W.rsvpBy) $("rsvpBy").textContent = `Please respond by ${long(new Date(W.rsvpBy + "T00:00:00"))}`;
-$("rsvpBtn").href = W.rsvpUrl;
+// RSVP: one tap saves the reply (api/rsvp.js); it then shows on the guest links page.
+const RSVP_URL = "/api/rsvp";
+if (!GUEST) $("rsvp").hidden = true;
+if (W.rsvpBy) { $("rsvpBy").hidden = false; $("rsvpBy").textContent = `Please respond by ${long(new Date(W.rsvpBy + "T00:00:00"))}`; }
+$("rsvpGuest").textContent = GUEST;
+const rsvpKey = "rsvp:" + guestCode;
+function showReply(answer) {
+  const yes = answer === "Attending";
+  $("rsvpChoices").hidden = !!answer; $("rsvpDone").hidden = !answer;
+  if (!answer) return;
+  $("rsvpDoneTitle").textContent = yes ? "Thank you, see you there!" : "Thank you for letting us know";
+  $("rsvpDoneText").textContent = yes
+    ? `Your attendance is confirmed. We can't wait to celebrate with you on ${long(d)}.`
+    : "You will be dearly missed. Thank you for your love and support.";
+}
+try { showReply(localStorage.getItem(rsvpKey) || ""); } catch {}
+document.querySelectorAll("[data-rsvp]").forEach(b => b.onclick = async () => {
+  const answer = b.dataset.rsvp, all = document.querySelectorAll("[data-rsvp]"), label = b.textContent;
+  all.forEach(x => x.disabled = true); b.textContent = "Sending…"; $("rsvpError").hidden = true;
+  try {
+    const res = await fetch(RSVP_URL, { method: "POST", body: new URLSearchParams({ code: guestCode, name: GUEST, entry: ENTRY, response: answer }) });
+    const out = await res.json().catch(() => ({}));
+    if (!out.ok) throw new Error(out.error || "failed");
+    try { localStorage.setItem(rsvpKey, answer); } catch {}
+    showReply(answer);
+  } catch { $("rsvpError").hidden = false; }
+  all.forEach(x => x.disabled = false); b.textContent = label;
+});
+$("rsvpChange").onclick = () => { try { localStorage.removeItem(rsvpKey); } catch {} showReply(""); };
 
 $("mono").textContent = initials;
 $("footNames").textContent = `${W.partner1.full} & ${W.partner2.full} · ${long(d)}`;
