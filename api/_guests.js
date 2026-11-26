@@ -16,7 +16,7 @@ module.exports = {
  "nzrg5a": "Ms. Sofia Mwanaka",
  "yphvjz": "Ms. Mildred Chindowe",
  "fsrwhk": "Ms. Tafadzwa Sazukwa",
- "fvr99s": "Mr. John Manyange",
+ "fvr99s": "Mr. John Nyamande",
  "kpkg4q": "Mr. Justice Mubaiwa",
  "h32x2y": "Mr. Frank Chipatiso",
  "2h9acu": "Mr. Progress Mupikata",

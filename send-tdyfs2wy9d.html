@@ -57,7 +57,7 @@ let sent = {}; try { sent = JSON.parse(localStorage.getItem("sent") || "{}"); } 
 function saveSent() { try { localStorage.setItem("sent", JSON.stringify(sent)); } catch {} }
 let filter = "todo";
 function message(g, link) {
-  return `Dear ${g.name},\n\nWith hearts full of love, the Murenje and Mugobo families invite you to the wedding of Tatenda and Nyasha on Friday, 25 December 2026 at Zimbali Gardens, Greendale.\n\nYour personal invitation: ${link}\n\nOnly persons named on this invitation will be admitted.`;
+  return `Dear ${g.name},\n\nWith hearts full of love, the Murenje and Mugobo families invite you to the wedding of Tatenda and Nyasha on Friday, 25 December 2026 at Zimbali Gardens, Greendale.\n\nYour personal invitation: ${link}\n\nOnly persons named on this invitation will be admitted.Kindly submit RSVP details so that we know you will be joining us Thank You 😊`;
 }
 function render() {
   const q = $("q").value.trim().toLowerCase();
