@@ -22,7 +22,7 @@
    ===================================================================== */
 const WEDDING = {
   partner1: { short: "Tatenda", full: "Ms. Tatenda D.", role: "Bride", family: "" },
-  partner2: { short: "Nyasha", full: "Mr. Nyasha E.", role: "Groom", family: "" },
+  partner2: { short: "Nyasha", full: "Mr. E. Nyasha", role: "Groom", family: "" },
 
   hosts: "The Murenje and Mugobo families",
   invitation: "With hearts full of love and gratitude, the Murenje and Mugobo families are delighted to invite {guest} to witness and celebrate one of the most beautiful milestones in our lives — the exchange of vows and celebration of the union of",
@@ -413,8 +413,9 @@ footer .eyebrow{color:#A9B19A;margin-top:12px}
 const W = WEDDING, $ = id => document.getElementById(id);
 const guestCode = (new URLSearchParams(location.search).get("g") || location.hash.slice(1) || "").trim().toLowerCase();
 const guestRec = (window.GUESTS || {})[guestCode];
-const GUEST = typeof guestRec === "string" ? guestRec : (guestRec && guestRec.name) || "";
-const ENTRY = (guestRec && guestRec.entry) || "";
+// Start with the name from guests.js, then ask the site for the latest (the bride may have corrected or added it).
+let GUEST = typeof guestRec === "string" ? guestRec : (guestRec && guestRec.name) || "";
+let ENTRY = (guestRec && guestRec.entry) || "";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const d = new Date(W.date + "T" + W.ceremony + ":00");
 const t12 = t => { const [h, m] = t.split(":").map(Number); return h === 0 && m === 0 ? "Midnight" : `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
@@ -428,13 +429,6 @@ const names = `${W.partner1.short} & ${W.partner2.short}`;
 $("seal").textContent = initials.replace(/ /g, "");
 $("heroNames").innerHTML = `${esc(W.partner1.short)}<span>&amp;</span>${esc(W.partner2.short)}`;
 $("heroDate").textContent = `${dots} · ${t12(W.ceremony)}`;
-$("inviteText").innerHTML = esc(W.invitation).replace("{guest}", GUEST ? `<span class="guest-name">${esc(GUEST)}</span>` : "you");
-if (GUEST) {
-  $("addressee").hidden = false;
-  $("addresseeName").textContent = GUEST;
-  if (ENTRY) { $("addresseeEntry").hidden = false; $("addresseeEntry").textContent = ENTRY; }
-  $("seal").setAttribute("aria-label", `Open the invitation for ${GUEST}`);
-}
 $("heroVenue").textContent = `${W.venue.name}, ${W.venue.area}`;
 
 const bits = [names, dots, times, `${W.venue.name}, ${W.venue.area}`, W.tagline];
@@ -488,17 +482,25 @@ $("dressCards").innerHTML = W.dressCode.cards.map(([e, t, p]) => `<div class="ca
 $("verseText").textContent = W.verse.text;
 $("verseRef").textContent = W.verse.ref;
 
+function applyGuest() {
+$("inviteText").innerHTML = esc(W.invitation).replace("{guest}", GUEST ? `<span class="guest-name">${esc(GUEST)}</span>` : "you");
+$("addressee").hidden = !GUEST;
+$("addresseeName").textContent = GUEST;
+$("addresseeEntry").hidden = !ENTRY; $("addresseeEntry").textContent = ENTRY;
+$("seal").setAttribute("aria-label", GUEST ? `Open the invitation for ${GUEST}` : "Open the invitation");
 $("noteCards").innerHTML = (GUEST ? `<div class="card admit"><h3>This invitation admits</h3><p>${esc(GUEST)}</p>${ENTRY ? `<span class="entry">${esc(ENTRY)}</span>` : ""}</div>` : "") + W.notes.map(([t, p]) => GUEST && /QR/i.test(p)
   ? `<div class="card pass"><h3>${esc(t)}</h3><p>${esc(p)}</p><div class="qr" id="qr" role="img"></div><small class="qrmeta" id="passMeta"></small></div>`
   : `<div class="card"><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`).join("");
+$("rsvp").hidden = !GUEST;
+$("rsvpGuest").textContent = GUEST;
+drawQR();
+}
 if (!W.faq.length) $("faq").hidden = true;
 $("faqList").innerHTML = W.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("");
 
 // RSVP: one tap saves the reply (api/rsvp.js); it then shows on the guest links page.
 const RSVP_URL = "/api/rsvp";
-if (!GUEST) $("rsvp").hidden = true;
 if (W.rsvpBy) { $("rsvpBy").hidden = false; $("rsvpBy").textContent = `Please respond by ${long(new Date(W.rsvpBy + "T00:00:00"))}`; }
-$("rsvpGuest").textContent = GUEST;
 const rsvpKey = "rsvp:" + guestCode;
 function showReply(answer) {
   const yes = answer === "Attending";
@@ -530,7 +532,8 @@ $("footVenue").textContent = `${W.venue.name}, ${W.venue.area}`;
 $("footTag").textContent = W.tagline;
 
 // Personal admission QR: plain text, so any phone camera can read it without internet.
-if (GUEST && window.qrcode && $("qr")) {
+function drawQR() {
+  if (!GUEST || !window.qrcode || !$("qr")) return;
   const text = [`${W.partner1.short} & ${W.partner2.short} Wedding`, `Admit: ${GUEST}`, ENTRY && `Entry: ${ENTRY}`,
     `Code: ${guestCode.toUpperCase()}`, `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${t12(W.ceremony)}`,
     `${W.venue.name}, ${W.venue.area}`, `${location.origin}${location.pathname}?g=${guestCode}`].filter(Boolean).join("\n");
@@ -540,6 +543,16 @@ if (GUEST && window.qrcode && $("qr")) {
   $("qr").setAttribute("aria-label", `Admission QR code for ${GUEST}`);
   $("passMeta").textContent = [ENTRY, `Code ${guestCode.toUpperCase()}`].filter(Boolean).join(" · ");
 }
+applyGuest();
+if (guestCode) fetch(`/api/guests?g=${encodeURIComponent(guestCode)}`, { cache: "no-store" })
+  .then(r => r.json().then(j => [r.status, j]))
+  .then(([status, j]) => {
+    if (status === 200 && j.name) { if (j.name === GUEST && (j.entry || "") === ENTRY) return; GUEST = j.name; ENTRY = j.entry || ""; }
+    else if (status === 404 && j.removed) { GUEST = ""; ENTRY = ""; }
+    else return;
+    applyGuest();
+    document.querySelectorAll("#notes .reveal, #rsvp .reveal").forEach(el => el.classList.add("in"));
+  }).catch(() => {});
 
 // Music (only if a file is set)
 let audio;

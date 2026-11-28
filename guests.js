@@ -65,7 +65,7 @@ window.GUESTS = {
   "entry": "VIP Entry"
  },
  "fvr99s": {
-  "name": "Mr. John Nyamande",
+  "name": "Mr. John Manyange",
   "entry": "VIP Entry"
  },
  "kpkg4q": {
